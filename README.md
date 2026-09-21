@@ -1,25 +1,27 @@
-# 🎈 Blank app template
+# Business Notebook
 
-A simple Streamlit app template for you to modify!
+A private notebook for running a small analytics service for local businesses:
+who to contact, every call, interview notes, case studies, and numbers that
+calculate themselves.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+Google Sheet = the database. Google Apps Script = the app. Private to one
+Google account. Free.
 
-### How to run it on your own machine
+**Start here:** [`CLAUDE.md`](CLAUDE.md) — the spec, the data model, the funnel
+definitions and the decisions log.
+**Setting up a machine:** [`docs/phase-0-setup.md`](docs/phase-0-setup.md)
 
-Prerequisite: install `uv` if you don't already have it.
+## Daily commands
 
+```bash
+clasp push            # send local code to Google
+clasp push -w         # ...and keep pushing on every save
+clasp open-script     # open the Apps Script editor in a browser
+clasp show-file-status # show exactly which files would be pushed
 ```
-$ curl -LsSf https://astral.sh/uv/install.sh | sh
-```
 
-1. Sync the dependencies
+## Rules
 
-   ```
-   $ uv sync
-   ```
-
-2. Run the app
-
-   ```
-   $ uv run streamlit run streamlit_app.py
-   ```
+- Never edit code in the Apps Script web editor. `clasp push` overwrites it.
+- Never commit `.clasp.json` or `.clasprc.json`. Both are gitignored.
+- Never put a client's customer data in this Sheet.

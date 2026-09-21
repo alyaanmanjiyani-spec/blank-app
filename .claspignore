@@ -1,0 +1,6 @@
+# Files here are kept local and never pushed to Google.
+# Note: `rootDir` in .clasp.json is `src`, so clasp already only looks in src/.
+# These rules trim what is left.
+**/*.md
+**/*.test.js
+**/.DS_Store

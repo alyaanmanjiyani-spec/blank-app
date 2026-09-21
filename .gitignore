@@ -162,3 +162,26 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+# ---------------------------------------------------------------------------
+# Apps Script / clasp
+# ---------------------------------------------------------------------------
+# Google OAuth credentials written by `clasp login`. NEVER commit these.
+.clasprc.json
+**/.clasprc.json
+
+# Points at your private scriptId. Not a password, but it is a pointer to a
+# private Sheet in your Drive, and it differs per machine. Copy
+# .clasp.json.example instead.
+.clasp.json
+
+# OAuth client secret files, if you ever use `clasp login --creds`
+client_secret*.json
+creds.json
+oauth*.json
+
+# Node
+node_modules/
+
+# Real business data must never be committed. fixtures/ holds FAKE data only.
+*.private.csv
+businesses.csv
