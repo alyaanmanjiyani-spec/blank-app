@@ -86,9 +86,8 @@ To sign out later: `clasp logout`.
 
 ## Step 5 — Create the Sheet and its bound script
 
-**Pick option A or B (see the chat message — B is recommended), then follow it.**
-
-### Option B (recommended): make the Sheet yourself, then clone it
+**Decided: Option B.** You make the Sheet, clasp clones it. (Option A is kept
+at the bottom as a fallback only.)
 
 1. Go to **https://sheets.new** — a blank Google Sheet opens.
 2. Click the title **"Untitled spreadsheet"** and rename it to
@@ -105,16 +104,6 @@ To sign out later: `clasp logout`.
 cd path/to/this/repo
 clasp clone-script PASTE_SCRIPT_ID_HERE --rootDir src
 ```
-
-### Option A: let clasp make both
-
-```bash
-cd path/to/this/repo
-clasp create-script --type sheets --title "Business Notebook" --rootDir src
-```
-
-clasp creates a new Sheet in the root of your Drive plus a bound script.
-Find the Sheet with `clasp open-container`.
 
 ---
 
@@ -199,3 +188,16 @@ git add -A && git commit -m "what changed"
 
 Never the other way around. Editing in the web editor then pushing will
 silently delete your web edits.
+
+---
+
+## Fallback only — Option A (not chosen)
+
+If Step 5 goes badly wrong, this makes the Sheet and the script in one command:
+
+```bash
+clasp create-script --type sheets --title "Business Notebook" --rootDir src
+```
+
+The new Sheet lands in the root of My Drive. Find it with `clasp open-container`.
+Then continue from Step 6 as normal.
