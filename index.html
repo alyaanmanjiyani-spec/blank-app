@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f12">
+<title>Schedule — Alyaan</title>
+
+<!-- Only external dependency. If it fails (offline), the system stack below takes over. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0e0f12;
+  --card:#16181d;
+  --card-2:#1b1e25;
+  --line:#272b34;
+  --text:#e9ebf0;
+  --dim:#8b91a1;
+  --dim-2:#5e6472;
+  --accent:#5fd68a;        /* the single accent — used sparingly */
+  --accent-soft:rgba(95,214,138,.12);
+  --amber:#e0a95f;         /* semantic only: partial completion */
+  --radius:16px;
+  --radius-sm:11px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding:0 16px calc(48px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:660px;margin:0 auto}
+
+/* ---------- header ---------- */
+header{padding:26px 2px 16px}
+.greet{font-size:25px;font-weight:600;letter-spacing:-.02em;margin:0}
+.clock{margin-top:6px;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+.quote{
+  position:relative;margin-top:16px;padding:14px 16px 14px 22px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:14px;color:#c7ccd8;line-height:1.55
+}
+.quote::before{
+  content:"";position:absolute;left:11px;top:14px;bottom:14px;
+  width:2px;border-radius:2px;background:var(--accent)
+}
+.quote .who{display:block;margin-top:6px;font-size:12px;color:var(--dim-2)}
+
+/* ---------- tabs ---------- */
+nav.tabs{display:flex;gap:6px;background:var(--card);padding:5px;border-radius:var(--radius-sm);border:1px solid var(--line);margin-bottom:18px}
+nav.tabs button{
+  flex:1;appearance:none;border:0;background:transparent;color:var(--dim);
+  font:inherit;font-size:13.5px;font-weight:500;padding:9px 4px;border-radius:8px;cursor:pointer;
+  transition:background .18s ease,color .18s ease
+}
+nav.tabs button[aria-selected="true"]{background:var(--card-2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+
+/* ---------- generic card ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.label{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim-2);font-weight:600}
+
+/* ---------- streak ---------- */
+.streak{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px 4px}
+.streak .half{flex:1;padding:0 16px}
+.streak .half + .half{border-left:1px solid var(--line)}
+.streak .num{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-top:6px}
+.streak .half.live .num{color:var(--accent)}
+.streak .num small{font-size:12.5px;font-weight:500;color:var(--dim);margin-left:6px;letter-spacing:0}
+.streak-note{font-size:12.5px;color:var(--dim);padding:0 2px}
+
+/* ---------- week strip ---------- */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.wday{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 2px 9px;text-align:center;transition:border-color .2s ease
+}
+.wday.today{border-color:var(--accent);background:var(--accent-soft)}
+.wday .dn{font-size:10.5px;color:var(--dim-2);font-weight:600;letter-spacing:.05em}
+.wday.today .dn{color:var(--accent)}
+.wday .dd{font-size:13px;font-weight:600;margin-top:1px}
+.ring{
+  width:22px;height:22px;border-radius:50%;margin:7px auto 0;
+  display:flex;align-items:center;justify-content:center
+}
+.ring i{width:14px;height:14px;border-radius:50%;background:var(--card);display:block}
+.wday.today .ring i{background:#1a2a20}
+/* future / unscheduled day: a thin outline, not a heavy donut */
+.ring.blank{background:none;box-shadow:inset 0 0 0 1.5px var(--line)}
+.ring.blank i{display:none}
+
+/* ---------- today list ---------- */
+.counter{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.counter b{font-weight:600}
+.bar{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .35s ease}
+
+.block{
+  display:flex;align-items:flex-start;gap:13px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:9px;
+  transition:opacity .3s ease,transform .3s ease,max-height .3s ease,
+             margin .3s ease,padding .3s ease,border-color .2s ease,background .2s ease;
+  max-height:220px;overflow:hidden
+}
+.block.now{border-color:var(--accent);background:var(--accent-soft)}
+.block.leaving{opacity:0;transform:translateY(-4px);max-height:0;margin-bottom:0;padding-top:0;padding-bottom:0;border-width:0}
+.block .time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;margin-top:3px}
+.block.now .time{color:var(--accent)}
+.block .name{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.block .body{flex:1;min-width:0}
+.nowtag{
+  display:inline-block;margin-left:8px;font-size:10px;font-weight:700;letter-spacing:.08em;
+  color:var(--accent);vertical-align:2px
+}
+
+/* custom checkbox */
+.cb{position:relative;flex:0 0 auto;width:22px;height:22px;margin-top:1px}
+.cb input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:2}
+.cb span{
+  position:absolute;inset:0;border:1.5px solid var(--dim-2);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;transition:all .18s ease
+}
+.cb input:checked + span{background:var(--accent);border-color:var(--accent)}
+.cb span::after{
+  content:"";width:5px;height:9px;border:solid #0e0f12;border-width:0 2px 2px 0;
+  transform:rotate(45deg) scale(0);margin-top:-2px;transition:transform .18s ease
+}
+.cb input:checked + span::after{transform:rotate(45deg) scale(1)}
+.cb input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+details.done-box{margin-top:6px}
+details.done-box summary{
+  list-style:none;cursor:pointer;color:var(--dim);font-size:13px;padding:10px 2px;user-select:none
+}
+details.done-box summary::-webkit-details-marker{display:none}
+details.done-box summary:hover{color:var(--text)}
+.block.done .name{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--dim-2)}
+.block.done{background:transparent}
+
+.empty{color:var(--dim);font-size:14px;text-align:center;padding:26px 10px}
+
+/* saturday toggle */
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:13px 16px;margin-bottom:9px}
+.sw .t{font-size:13.5px}
+.sw .t small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}
+.toggle{position:relative;width:44px;height:26px;flex:0 0 auto}
+.toggle input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:2}
+.toggle span{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:background .2s ease}
+.toggle span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8b91a1;transition:transform .2s ease,background .2s ease}
+.toggle input:checked + span{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.toggle input:checked + span::after{transform:translateX(18px);background:var(--accent)}
+
+/* ---------- calendar ---------- */
+.calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.calhead .m{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.navbtn{
+  appearance:none;background:var(--card);border:1px solid var(--line);color:var(--text);
+  width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:border-color .18s ease
+}
+.navbtn:hover{border-color:var(--dim-2)}
+.dows{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
+.dows div{text-align:center;font-size:10.5px;color:var(--dim-2);font-weight:600;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cell{
+  aspect-ratio:1;border-radius:10px;border:1px solid #1f2229;background:transparent;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--dim);
+  cursor:default;transition:transform .15s ease,border-color .15s ease;font-variant-numeric:tabular-nums
+}
+.cell.blank{border:0;background:transparent}
+.cell.clickable{cursor:pointer}
+.cell.clickable:hover{transform:scale(1.06)}
+.cell.full{background:rgba(95,214,138,.16);border-color:rgba(95,214,138,.45);color:#b9ecc9}
+.cell.part{background:rgba(224,169,95,.13);border-color:rgba(224,169,95,.4);color:#e8cfa5}
+.cell.miss{background:#232730;border-color:#232730;color:#6d7484}
+.cell.today{box-shadow:0 0 0 2px var(--accent);color:var(--text);font-weight:600}
+.cell.sel{border-color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:11.5px;color:var(--dim)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:0}
+.detail{margin-top:16px}
+.drow{display:flex;gap:11px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.drow:last-child{border-bottom:0}
+.drow .mk{width:15px;flex:0 0 auto;color:var(--dim-2)}
+.drow.ok .mk{color:var(--accent)}
+.drow .tm{font-size:11.5px;color:var(--dim-2);margin-left:auto;padding-left:10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---------- edit ---------- */
+.daypills{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px}
+.daypills button{
+  appearance:none;background:var(--card);border:1px solid var(--line);color:var(--dim);
+  padding:9px 0;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .18s ease
+}
+.daypills button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.erow{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;margin-bottom:9px}
+.erow .top{display:flex;gap:10px;align-items:center}
+.erow input[type=text]{
+  flex:1;min-width:0;background:var(--card-2);border:1px solid var(--line);color:var(--text);
+  font:inherit;font-size:14px;padding:9px 11px;border-radius:9px
+}
+.erow .times{display:flex;gap:8px;align-items:center;margin-top:9px}
+.erow input[type=time]{
+  background:var(--card-2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13px;
+  padding:8px 10px;border-radius:9px;flex:1;min-width:0;color-scheme:dark
+}
+.erow .dash{color:var(--dim-2);font-size:12px}
+.del{
+  appearance:none;background:transparent;border:1px solid var(--line);color:var(--dim);
+  width:34px;height:34px;flex:0 0 auto;border-radius:9px;cursor:pointer;font-size:16px;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:all .18s ease
+}
+.del:hover{border-color:#6b4a4a;color:#e08b8b}
+.hint{font-size:11.5px;color:var(--dim-2);margin-top:8px}
+.btn{
+  appearance:none;width:100%;background:var(--card);border:1px dashed var(--line);color:var(--dim);
+  font:inherit;font-size:14px;padding:13px;border-radius:var(--radius);cursor:pointer;
+  transition:all .18s ease
+}
+.btn:hover{border-color:var(--dim-2);color:var(--text)}
+.btn.solid{border-style:solid}
+.btn.danger:hover{border-color:#6b4a4a;color:#e08b8b}
+
+.warn{background:#2a1f1f;border:1px solid #4a3232;color:#e6b9b9;font-size:12.5px;padding:10px 13px;border-radius:10px;margin-bottom:16px}
+[hidden]{display:none!important}
+
+@media (max-width:400px){
+  .streak .half{padding:0 12px}
+  .streak .num{font-size:25px}
+  .streak .num small{margin-left:5px}
+  .wday .dd{font-size:12px}
+  body{font-size:14.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1 class="greet" id="greet">Hello, Alyaan</h1>
+    <div class="clock" id="clock">&nbsp;</div>
+    <div class="quote" id="quote"></div>
+  </header>
+
+  <div class="warn" id="storagewarn" hidden>
+    Storage is unavailable in this browser, so nothing will be saved between visits.
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-today" aria-selected="true" data-view="today">Today</button>
+    <button role="tab" id="tab-calendar" aria-selected="false" data-view="calendar">Calendar</button>
+    <button role="tab" id="tab-edit" aria-selected="false" data-view="edit">Edit</button>
+  </nav>
+
+  <!-- ===================== TODAY ===================== -->
+  <section id="view-today">
+    <div class="stack" style="margin-bottom:20px">
+      <div class="streak">
+        <div class="half live">
+          <div class="label">Current streak</div>
+          <div class="num"><span id="streak-cur">0</span><small id="streak-cur-sub">days</small></div>
+        </div>
+        <div class="half">
+          <div class="label">Longest ever</div>
+          <div class="num"><span id="streak-best">0</span><small>days</small></div>
+        </div>
+      </div>
+      <div class="streak-note" id="streak-note"></div>
+    </div>
+
+    <div class="label" style="margin-bottom:9px">This week</div>
+    <div class="week" id="week"></div>
+
+    <div style="margin-top:22px">
+      <div class="counter">
+        <div class="label">Today</div>
+        <div><b id="count">0 of 0</b> <span style="color:var(--dim)">done today.</span></div>
+      </div>
+      <div class="bar"><i id="barfill" style="width:0%"></i></div>
+      <div id="sat-toggle-slot"></div>
+      <div id="blocks"></div>
+      <details class="done-box" id="donebox" hidden>
+        <summary id="donesum">Completed</summary>
+        <div id="doneblocks"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== CALENDAR ===================== -->
+  <section id="view-calendar" hidden>
+    <div class="calhead">
+      <button class="navbtn" id="prevm" aria-label="Previous month">&#8249;</button>
+      <div class="m" id="monthlabel"></div>
+      <button class="navbtn" id="nextm" aria-label="Next month">&#8250;</button>
+    </div>
+    <div class="dows"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i style="background:rgba(95,214,138,.5)"></i>80%+</span>
+      <span><i style="background:rgba(224,169,95,.5)"></i>Partial</span>
+      <span><i style="background:#232730"></i>Missed</span>
+      <span><i style="box-shadow:inset 0 0 0 1px #2c313b"></i>Upcoming</span>
+    </div>
+    <div class="detail" id="detail"></div>
+  </section>
+
+  <!-- ===================== EDIT ===================== -->
+  <section id="view-edit" hidden>
+    <div class="label" style="margin-bottom:9px">Edit which day</div>
+    <div class="daypills" id="daypills"></div>
+    <div id="editrows"></div>
+    <button class="btn" id="addblock" style="margin-top:4px">+ Add block</button>
+    <div class="hint">Leave the end time empty for a single moment (like “Sleep”). Changes save as you type.</div>
+    <div style="margin-top:26px">
+      <button class="btn solid danger" id="resetsched">Reset to default schedule</button>
+      <div class="hint">Only rewrites the schedule. Your history and streak stay untouched.</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Personal schedule tracker — single file, vanilla JS, localStorage only.
+
+   The two ideas worth understanding before you edit anything:
+
+   1. THE DAY STARTS AT 4:00 AM, not midnight. Every date in this app is a
+      "logical date" (see logicalDate()). At 12:30 AM on Tuesday you are still
+      living inside Monday as far as this app is concerned. That's what keeps
+      the 10 PM–12 AM block and the 12:30 AM sleep block from being wiped
+      mid-use and silently killing the streak every night.
+
+   2. NOTHING IS "RESET". Completion is stored per logical date in
+      state.history. When the logical date changes, today's key changes, so the
+      new day is empty automatically — there is no reset step that can go wrong.
+      Rollover only has to (a) backfill days you never opened and (b) recompute
+      the streak.
+   ========================================================================= */
+
+var DAY_START_HOUR = 4;       // logical day boundary
+var STREAK_THRESHOLD = 80;    // % of a day's blocks needed for the day to "count"
+var STORE_KEY = "alyaan.schedule.v1";
+
+/* ------------------------------ date helpers ------------------------------ */
+
+function pad(n){ return String(n).padStart(2,"0"); }
+
+/** "YYYY-MM-DD" in LOCAL time (never use toISOString here — it shifts by UTC). */
+function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+
+function keyToDate(k){
+  var p = k.split("-").map(Number);
+  return new Date(p[0], p[1]-1, p[2]);
+}
+
+function addDays(d, n){ var c = new Date(d); c.setDate(c.getDate()+n); return c; }
+
+/**
+ * The calendar date this moment belongs to, given a 4 AM boundary.
+ * Anything before 4 AM belongs to the previous calendar date.
+ */
+function logicalDate(now){
+  var d = new Date(now || Date.now());
+  if (d.getHours() < DAY_START_HOUR) d.setDate(d.getDate() - 1);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function logicalKey(now){ return dateKey(logicalDate(now)); }
+
+function toMinutes(hhmm){ var p = hhmm.split(":").map(Number); return p[0]*60 + p[1]; }
+
+/**
+ * Minutes since the 4 AM boundary (0..1439). This is what makes sorting and
+ * "is it happening now" work across midnight: 4:00 AM -> 0, 11 PM -> 1140,
+ * 12:30 AM -> 1230 (i.e. LATER than 11 PM, which is what we want).
+ */
+function logicalMinutes(hhmm){ return (toMinutes(hhmm) - DAY_START_HOUR*60 + 1440) % 1440; }
+
+function nowLogicalMinutes(now){
+  var d = now || new Date();
+  return (d.getHours()*60 + d.getMinutes() - DAY_START_HOUR*60 + 1440) % 1440;
+}
+
+function fmt12(hhmm){
+  var p = hhmm.split(":").map(Number), h = p[0], m = p[1];
+  var ampm = h >= 12 ? "PM" : "AM";
+  var h12 = h % 12; if (h12 === 0) h12 = 12;
+  return h12 + ":" + pad(m) + " " + ampm;
+}
+
+function timeRange(b){ return b.end ? fmt12(b.start) + " – " + fmt12(b.end) : fmt12(b.start); }
+
+function uid(){ return Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3); }
+
+/* -------------------------------- quotes --------------------------------- */
+
+var QUOTES = [
+  "Discipline is choosing between what you want now and what you want most.",
+  "You do not rise to the level of your goals. You fall to the level of your systems.",
+  "Consistency beats intensity, every single time.",
+  "The work you do when no one is watching is the work that decides everything.",
+  "Small disciplines, repeated with consistency, become large achievements.",
+  "Motivation gets you started. Habit is what keeps you going.",
+  "You will not always be motivated. That is exactly why you learn to be disciplined.",
+  "The pain of discipline weighs ounces. The pain of regret weighs tons.",
+  "Do the thing today that your future self will thank you for.",
+  "Winners are simply people willing to do what everyone else won't.",
+  "Compounding is quiet at first. Show up long enough and it gets loud.",
+  "One day, or day one. You decide.",
+  "Excellence is not an act, it is a habit.",
+  "Nothing worth building gets built in a single night.",
+  "The standard you walk past is the standard you accept.",
+  "Be so consistent that quitting starts to feel unfamiliar.",
+  "Progress is rarely loud. Keep going anyway.",
+  "You can't cheat the grind. It knows exactly how much you invested.",
+  "Hard work beats talent when talent refuses to work hard.",
+  "The only session you regret is the one you skipped.",
+  "Don't count the days. Make the days count.",
+  "Your habits are writing your future while you're busy making plans.",
+  "Consistency is what turns average into exceptional.",
+  "The distance between where you are and where you want to be is called discipline.",
+  "Every day you don't quit, you are winning.",
+  "Boring consistency outperforms occasional brilliance.",
+  "Nobody cares how you feel about it. Do it anyway.",
+  "Long-term thinking is the last real competitive advantage.",
+  "You are not behind. You are early in the compounding curve.",
+  "Show up on the days you don't want to. Those are the days that count double.",
+  "Discipline is self-respect in action.",
+  "The best time to start was yesterday. The second best time is right now.",
+  "Focus means saying no to a thousand good things.",
+  "Build quietly. Let the results do the talking.",
+  "Success is a few simple disciplines practiced every day.",
+  "You don't need more hours. You need fewer distractions.",
+  "Be patient with results and impatient with effort.",
+  "The person you'll be in five years is built out of today's boring choices.",
+  "Repetition is the mother of mastery.",
+  "Energy follows action. Start before you feel ready.",
+  "Anyone can do it once. You do it again tomorrow.",
+  "Discipline today is freedom later."
+];
+
+/**
+ * Pick one quote per logical day, deterministically.
+ * Seed = days elapsed since the Unix epoch for that date, so the index only
+ * changes when the (logical) date changes — refreshing the page never re-rolls
+ * it, and it keeps advancing correctly across year boundaries.
+ */
+function quoteForDay(dayKey){
+  var d = keyToDate(dayKey);
+  var daysSinceEpoch = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+  return QUOTES[((daysSinceEpoch % QUOTES.length) + QUOTES.length) % QUOTES.length];
+}
+
+/* ---------------------------- default schedule ---------------------------- */
+
+function block(label, start, end, extra){
+  var b = { id: uid(), label: label, start: start, end: end || "" };
+  if (extra) for (var k in extra) b[k] = extra[k];
+  return b;
+}
+
+/** Keyed by JS getDay(): 0 = Sunday … 6 = Saturday. */
+function defaultSchedule(){
+  function weekday(){
+    return [
+      block("School", "08:30", "15:30"),
+      block("Eat & Chill", "15:35", "16:45"),
+      block("School Work + Business Work", "17:00", "20:00"),
+      block("Gym", "20:15", "21:30"),
+      block("Business / Extracurricular Work", "22:00", "00:00"),
+      block("Sleep", "00:30", "")
+    ];
+  }
+  return {
+    0: [ // Sunday — deliberately loose
+      block("Wake Up", "09:30", ""),
+      block("Rest & Reset", "11:00", "14:00"),
+      block("Business (flexible)", "15:00", "18:00")
+    ],
+    1: weekday(), 2: weekday(), 3: weekday(), 4: weekday(), 5: weekday(),
+    6: [ // Saturday
+      block("REC", "09:00", "14:00", { rec: true }),  // rec:true -> the extendable one
+      block("Chill / Downtime", "15:00", "17:00"),
+      block("Business", "17:10", "20:10"),
+      block("Gym", "20:30", "21:45"),
+      block("Business / Extracurricular Work", "22:30", "00:00")
+    ]
+  };
+}
+
+var SAT_REC_EXTENDED_END = "16:30";
+
+/* ------------------------------- persistence ------------------------------ */
+
+var storageOK = true;
+
+function freshState(){
+  return {
+    version: 1,
+    schedule: defaultSchedule(),
+    history: {},          // "YYYY-MM-DD" -> { done:[ids], total:n, blocks:[snapshot] }
+    satExtend: {},        // "YYYY-MM-DD" -> true, per-Saturday REC extension
+    streak: { current: 0, longest: 0 },
+    firstDay: null,       // first logical day the app was ever opened
+    lastSeen: null        // last logical day we ran catchUp() for
+  };
+}
+
+function load(){
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      var base = freshState();
+      for (var k in base) if (!(k in parsed)) parsed[k] = base[k];
+      return parsed;
+    }
+  } catch (e) {
+    storageOK = false;                       // unreadable storage: run in memory
+  }
+  return freshState();
+}
+
+function save(){
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch (e) {
+    if (storageOK) { storageOK = false; document.getElementById("storagewarn").hidden = false; }
+  }
+}
+
+var state = load();
+if (!storageOK) document.getElementById("storagewarn").hidden = false;
+
+/* ---------------------------- schedule queries ---------------------------- */
+
+/** The blocks scheduled for a given date key, sorted, with per-date tweaks applied. */
+function blocksForDate(k){
+  var weekday = keyToDate(k).getDay();
+  var list = (state.schedule[weekday] || []).map(function(b){ return Object.assign({}, b); });
+
+  // Saturday REC can be extended for specific dates only.
+  if (weekday === 6 && state.satExtend[k]) {
+    list.forEach(function(b){ if (b.rec) b.end = SAT_REC_EXTENDED_END; });
+  }
+  list.sort(function(a,b){ return logicalMinutes(a.start) - logicalMinutes(b.start); });
+  return list;
+}
+
+/** Create (or refresh the snapshot of) the history record for a date. */
+function recordFor(k, createIfMissing){
+  var rec = state.history[k];
+  if (!rec) {
+    if (!createIfMissing) return null;
+    rec = state.history[k] = { done: [], total: 0, blocks: [] };
+  }
+  return rec;
+}
+
+/**
+ * Re-snapshot today's schedule into its history record. Called whenever the
+ * schedule or a checkbox changes, so the stored `total` and `blocks` always
+ * reflect the day as it actually was — which is what the calendar reads back.
+ */
+function syncToday(){
+  var k = logicalKey();
+  var rec = recordFor(k, true);
+  var list = blocksForDate(k);
+  rec.blocks = list.map(function(b){ return { id:b.id, label:b.label, start:b.start, end:b.end }; });
+  rec.total = list.length;
+  var live = {};
+  list.forEach(function(b){ live[b.id] = true; });
+  rec.done = rec.done.filter(function(id){ return live[id]; });   // drop deleted blocks
+  return rec;
+}
+
+/* ------------------------------ streak logic ------------------------------ */
+
+function pctOf(rec){
+  if (!rec || !rec.total) return null;      // no blocks scheduled -> no verdict
+  return (rec.done.length / rec.total) * 100;
+}
+
+/** true = day counted, false = day missed, null = neutral (nothing scheduled). */
+function dayHit(rec){
+  var p = pctOf(rec);
+  return p === null ? null : p >= STREAK_THRESHOLD;
+}
+
+/**
+ * Recompute both streaks from history.
+ *
+ * Only days that have ALREADY ROLLED OVER count — the walk starts at yesterday,
+ * never today, because today isn't finished yet. Days with nothing scheduled are
+ * neutral: they neither extend nor break a streak. A day with no record at all
+ * (app never opened, and catchUp somehow missed it) counts as missed.
+ */
+function recomputeStreaks(){
+  var todayD = logicalDate();
+  var first  = state.firstDay ? keyToDate(state.firstDay) : null;
+  var current = 0, longest = 0, run = 0;
+
+  if (first) {
+    // Current streak: walk backwards from yesterday until a day is missed.
+    var d = addDays(todayD, -1);
+    var guard = 0;
+    while (d >= first && guard++ < 4000) {
+      var hit = dayHit(state.history[dateKey(d)]);
+      if (hit === null) { d = addDays(d, -1); continue; }   // neutral: pass through
+      if (!hit) break;
+      current++;
+      d = addDays(d, -1);
+    }
+    // Longest ever: forward scan over every completed day.
+    var c = new Date(first), guard2 = 0;
+    while (c < todayD && guard2++ < 4000) {
+      var h = dayHit(state.history[dateKey(c)]);
+      if (h === null) { c = addDays(c, 1); continue; }
+      if (h) { run++; if (run > longest) longest = run; } else { run = 0; }
+      c = addDays(c, 1);
+    }
+  }
+  state.streak = { current: current, longest: Math.max(longest, current) };
+}
+
+/**
+ * Bring the saved state up to the present logical day.
+ *  - first run: stamp firstDay/lastSeen
+ *  - days the app was never opened get an empty (missed) record so the calendar
+ *    and the streak tell the truth instead of silently skipping them
+ *  - then the streak is recomputed
+ * Runs on load and every time the logical date flips while the page is open.
+ */
+function catchUp(){
+  var todayKey = logicalKey();
+  if (!state.firstDay) state.firstDay = todayKey;
+  if (!state.lastSeen) state.lastSeen = todayKey;
+
+  var cursor = keyToDate(state.lastSeen);
+  var todayD = keyToDate(todayKey);
+  var guard = 0;
+  while (cursor < todayD && guard++ < 4000) {
+    var k = dateKey(cursor);
+    if (!state.history[k]) {
+      var list = blocksForDate(k);
+      state.history[k] = {
+        done: [],
+        total: list.length,
+        blocks: list.map(function(b){ return { id:b.id, label:b.label, start:b.start, end:b.end }; })
+      };
+    }
+    cursor = addDays(cursor, 1);
+  }
+
+  state.lastSeen = todayKey;
+  syncToday();
+  recomputeStreaks();
+  save();
+}
+
+/* ------------------------------ view plumbing ----------------------------- */
+
+var currentView = "today";
+var calMonth = new Date(); calMonth.setDate(1);
+var selectedDay = null;      // calendar detail selection
+var editDay = logicalDate().getDay();
+
+function $(id){ return document.getElementById(id); }
+
+function setView(v){
+  currentView = v;
+  ["today","calendar","edit"].forEach(function(name){
+    $("view-" + name).hidden = (name !== v);
+    $("tab-" + name).setAttribute("aria-selected", String(name === v));
+  });
+  renderAll();
+}
+
+document.querySelectorAll("nav.tabs button").forEach(function(btn){
+  btn.addEventListener("click", function(){ setView(btn.dataset.view); });
+});
+
+/* -------------------------------- header --------------------------------- */
+
+function greetingFor(h){
+  if (h < 12) return "Good Morning";
+  if (h < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+function renderHeader(){
+  var now = new Date();
+  $("greet").textContent = greetingFor(now.getHours()) + ", Alyaan";
+  $("clock").textContent = now.toLocaleDateString(undefined, {
+    weekday:"long", month:"long", day:"numeric"
+  }) + " · " + now.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit", second:"2-digit" });
+}
+
+function renderQuote(){
+  $("quote").textContent = quoteForDay(logicalKey());
+}
+
+/* ------------------------------- today view ------------------------------- */
+
+function currentBlockId(list, now){
+  var m = nowLogicalMinutes(now);
+  for (var i = 0; i < list.length; i++) {
+    var b = list[i];
+    var s = logicalMinutes(b.start);
+    // A block with no end time is a moment, not a span: treat it as 30 minutes
+    // wide purely so it can light up as "now".
+    var e = b.end ? logicalMinutes(b.end) : s + 30;
+    if (b.end && e <= s) e = s + 1;              // guard against end <= start
+    if (m >= s && m < e) return b.id;
+  }
+  return null;
+}
+
+function blockEl(b, done, isNow){
+  var el = document.createElement("div");
+  el.className = "block" + (done ? " done" : "") + (isNow ? " now" : "");
+  el.dataset.id = b.id;
+  el.innerHTML =
+    '<label class="cb"><input type="checkbox"' + (done ? " checked" : "") +
+      ' aria-label="' + escapeAttr(b.label) + '"><span></span></label>' +
+    '<div class="body">' +
+      '<div class="name">' + escapeHtml(b.label) +
+        (isNow ? '<span class="nowtag">NOW</span>' : '') + '</div>' +
+      '<div class="time">' + escapeHtml(timeRange(b)) + '</div>' +
+    '</div>';
+  el.querySelector("input").addEventListener("change", function(){ toggleBlock(b.id, el, done); });
+  return el;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+/**
+ * Check / uncheck a block. Checking animates the row out before re-rendering so
+ * the list collapses smoothly instead of snapping.
+ */
+function toggleBlock(id, el, wasDone){
+  var rec = syncToday();
+  var i = rec.done.indexOf(id);
+  if (i === -1) rec.done.push(id); else rec.done.splice(i, 1);
+  recomputeStreaks();
+  save();
+
+  if (!wasDone) {
+    el.classList.add("leaving");
+    setTimeout(renderToday, 300);
+    renderCounter();          // counter + bar update immediately
+    renderWeek();
+  } else {
+    renderToday();
+  }
+}
+
+function renderCounter(){
+  var rec = syncToday();
+  $("count").textContent = rec.done.length + " of " + rec.total;
+  var pct = rec.total ? (rec.done.length / rec.total) * 100 : 0;
+  $("barfill").style.width = pct + "%";
+}
+
+function renderSatToggle(){
+  var slot = $("sat-toggle-slot");
+  slot.innerHTML = "";
+  var k = logicalKey();
+  if (keyToDate(k).getDay() !== 6) return;                       // Saturdays only
+  if (!blocksForDate(k).some(function(b){ return b.rec; })) return;  // REC block still exists?
+
+  var on = !!state.satExtend[k];
+  var wrap = document.createElement("div");
+  wrap.className = "sw";
+  wrap.innerHTML =
+    '<div class="t">Long REC today' +
+      '<small>Extends REC to ' + fmt12(SAT_REC_EXTENDED_END) + ' — this Saturday only.</small></div>' +
+    '<label class="toggle"><input type="checkbox"' + (on ? " checked" : "") +
+      ' aria-label="Extend REC today"><span></span></label>';
+  wrap.querySelector("input").addEventListener("change", function(e){
+    if (e.target.checked) state.satExtend[k] = true; else delete state.satExtend[k];
+    syncToday(); save(); renderToday();
+  });
+  slot.appendChild(wrap);
+}
+
+function renderToday(){
+  var k = logicalKey();
+  var rec = syncToday();
+  var list = blocksForDate(k);
+  var doneSet = {}; rec.done.forEach(function(id){ doneSet[id] = true; });
+  var nowId = currentBlockId(list, new Date());
+
+  var open = $("blocks"), doneWrap = $("doneblocks");
+  open.innerHTML = ""; doneWrap.innerHTML = "";
+
+  var pending = list.filter(function(b){ return !doneSet[b.id]; });
+  var finished = list.filter(function(b){ return doneSet[b.id]; });
+
+  if (!list.length) {
+    open.innerHTML = '<div class="empty">Nothing scheduled for today.<br>Add blocks in the Edit tab.</div>';
+  } else if (!pending.length) {
+    open.innerHTML = '<div class="empty">All done today. Go rest.</div>';
+  } else {
+    pending.forEach(function(b){ open.appendChild(blockEl(b, false, b.id === nowId)); });
+  }
+
+  $("donebox").hidden = finished.length === 0;
+  $("donesum").textContent = "Completed (" + finished.length + ")";
+  finished.forEach(function(b){ doneWrap.appendChild(blockEl(b, true, false)); });
+
+  renderSatToggle();
+  renderCounter();
+  renderStreak();
+  renderWeek();
+}
+
+/** Cheap tick-time update: only re-tag which block is "now". */
+function refreshNowHighlight(){
+  if (currentView !== "today") return;
+  var list = blocksForDate(logicalKey());
+  var nowId = currentBlockId(list, new Date());
+  document.querySelectorAll("#blocks .block").forEach(function(el){
+    var isNow = el.dataset.id === nowId;
+    if (isNow === el.classList.contains("now")) return;     // nothing changed
+    el.classList.toggle("now", isNow);
+    var name = el.querySelector(".name");
+    var tag = name.querySelector(".nowtag");
+    if (isNow && !tag) {
+      var s = document.createElement("span");
+      s.className = "nowtag"; s.textContent = "NOW";
+      name.appendChild(s);
+    } else if (!isNow && tag) {
+      tag.remove();
+    }
+  });
+}
+
+function renderStreak(){
+  $("streak-cur").textContent = state.streak.current;
+  $("streak-best").textContent = state.streak.longest;
+  $("streak-cur-sub").textContent = state.streak.current === 1 ? "day" : "days";
+
+  var rec = syncToday();
+  var note = $("streak-note");
+  if (!rec.total) { note.textContent = ""; return; }
+
+  var needed = Math.ceil(rec.total * STREAK_THRESHOLD / 100);
+  var left = needed - rec.done.length;
+  note.textContent = left > 0
+    ? left + " more to make today count (" + needed + " of " + rec.total + " needed)."
+    : "Today counts. It locks in at the 4 AM reset.";
+}
+
+function renderWeek(){
+  var wrap = $("week"); wrap.innerHTML = "";
+  var todayKey = logicalKey();
+  var todayD = keyToDate(todayKey);
+  var weekStart = addDays(todayD, -todayD.getDay());          // Sunday-start week
+  var names = ["S","M","T","W","T","F","S"];
+
+  for (var i = 0; i < 7; i++) {
+    var d = addDays(weekStart, i);
+    var k = dateKey(d);
+    var isToday = k === todayKey;
+    var isFuture = d > todayD;
+
+    var rec = state.history[k];
+    var pct = pctOf(rec);
+    if (isToday) { var t = syncToday(); pct = pctOf(t); }
+
+    var cell = document.createElement("div");
+    cell.className = "wday" + (isToday ? " today" : "");
+
+    var ringHtml;
+    if (isFuture || pct === null || (isToday && pct === 0)) {
+      ringHtml = '<div class="ring blank"></div>';                   // nothing to say yet
+    } else if (pct === 0) {
+      ringHtml = '<div class="ring" style="background:var(--line)"><i></i></div>';  // missed
+    } else {
+      var color = pct >= STREAK_THRESHOLD ? "var(--accent)" : "var(--amber)";
+      ringHtml = '<div class="ring" style="background:conic-gradient(' + color + ' ' +
+                 Math.round(pct) + '%, var(--line) 0)"><i></i></div>';
+    }
+    cell.innerHTML = '<div class="dn">' + names[i] + '</div><div class="dd">' + d.getDate() + '</div>' + ringHtml;
+    wrap.appendChild(cell);
+  }
+}
+
+/* ------------------------------ calendar view ----------------------------- */
+
+function renderCalendar(){
+  var y = calMonth.getFullYear(), m = calMonth.getMonth();
+  $("monthlabel").textContent = calMonth.toLocaleDateString(undefined, { month:"long", year:"numeric" });
+
+  var grid = $("grid"); grid.innerHTML = "";
+  var first = new Date(y, m, 1);
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var todayKey = logicalKey();
+  var todayD = keyToDate(todayKey);
+  var firstDayD = state.firstDay ? keyToDate(state.firstDay) : null;
+
+  for (var i = 0; i < first.getDay(); i++) {
+    var blank = document.createElement("div");
+    blank.className = "cell blank";
+    grid.appendChild(blank);
+  }
+
+  for (var day = 1; day <= daysInMonth; day++) {
+    (function(day){
+      var d = new Date(y, m, day), k = dateKey(d);
+      var cell = document.createElement("div");
+      cell.className = "cell";
+      cell.textContent = day;
+
+      var isToday = k === todayKey;
+      var isFuture = d > todayD;
+      var rec = isToday ? syncToday() : state.history[k];
+      var pct = pctOf(rec);
+
+      if (isFuture) {
+        /* neutral */
+      } else if (pct === null) {
+        // Nothing scheduled, or a date from before this app was first used.
+        if (firstDayD && d >= firstDayD && !isToday) cell.classList.add("miss");
+      } else if (pct >= STREAK_THRESHOLD) {
+        cell.classList.add("full");
+      } else if (pct > 0) {
+        cell.classList.add("part");
+      } else if (!isToday) {
+        cell.classList.add("miss");   // today isn't over yet, so it is never "missed"
+      }
+
+      if (isToday) cell.classList.add("today");
+      if (k === selectedDay) cell.classList.add("sel");
+
+      if (!isFuture) {
+        cell.classList.add("clickable");
+        cell.addEventListener("click", function(){
+          selectedDay = (selectedDay === k) ? null : k;
+          renderCalendar();
+        });
+      }
+      grid.appendChild(cell);
+    })(day);
+  }
+
+  renderDetail();
+}
+
+function renderDetail(){
+  var box = $("detail");
+  if (!selectedDay) { box.innerHTML = ""; return; }
+
+  var k = selectedDay;
+  var isToday = k === logicalKey();
+  var rec = isToday ? syncToday() : state.history[k];
+  var d = keyToDate(k);
+  var title = d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+
+  // Older records may predate the snapshot; fall back to the current schedule.
+  var items = (rec && rec.blocks && rec.blocks.length) ? rec.blocks : blocksForDate(k);
+  var doneSet = {}; if (rec) rec.done.forEach(function(id){ doneSet[id] = true; });
+  var pct = pctOf(rec);
+
+  var head = '<div class="label" style="margin-bottom:10px">' + escapeHtml(title) +
+    (pct === null ? "" : " · " + Math.round(pct) + "%") + '</div>';
+
+  if (!items.length) {
+    box.innerHTML = head + '<div class="empty">Nothing was scheduled.</div>';
+    return;
+  }
+  var rows = items.map(function(b){
+    var ok = !!doneSet[b.id];
+    return '<div class="drow' + (ok ? " ok" : "") + '">' +
+             '<div class="mk">' + (ok ? "&#10003;" : "&#9675;") + '</div>' +
+             '<div>' + escapeHtml(b.label) + '</div>' +
+             '<div class="tm">' + escapeHtml(timeRange(b)) + '</div>' +
+           '</div>';
+  }).join("");
+  box.innerHTML = head + '<div class="card" style="padding:4px 16px">' + rows + '</div>';
+}
+
+$("prevm").addEventListener("click", function(){ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); });
+$("nextm").addEventListener("click", function(){ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); });
+
+/* -------------------------------- edit view ------------------------------- */
+
+var DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function renderEdit(){
+  var pills = $("daypills"); pills.innerHTML = "";
+  DAY_NAMES.forEach(function(n, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = n;
+    b.setAttribute("aria-pressed", String(i === editDay));
+    b.addEventListener("click", function(){ editDay = i; renderEdit(); });
+    pills.appendChild(b);
+  });
+
+  var wrap = $("editrows"); wrap.innerHTML = "";
+  var list = (state.schedule[editDay] || []).slice()
+    .sort(function(a,b){ return logicalMinutes(a.start) - logicalMinutes(b.start); });
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="empty">No blocks on ' + DAY_NAMES[editDay] + ' yet.</div>';
+  }
+
+  list.forEach(function(b){
+    var row = document.createElement("div");
+    row.className = "erow";
+    row.innerHTML =
+      '<div class="top">' +
+        '<input type="text" value="' + escapeAttr(b.label) + '" placeholder="Block name">' +
+        '<button class="del" type="button" aria-label="Delete block">&times;</button>' +
+      '</div>' +
+      '<div class="times">' +
+        '<input type="time" class="s" value="' + b.start + '">' +
+        '<span class="dash">to</span>' +
+        '<input type="time" class="e" value="' + b.end + '">' +
+      '</div>';
+
+    var name = row.querySelector('input[type=text]');
+    var s = row.querySelector("input.s");
+    var e = row.querySelector("input.e");
+
+    name.addEventListener("input", function(){ updateBlock(b.id, { label: name.value }); });
+    s.addEventListener("change", function(){
+      if (!s.value) { s.value = b.start; return; }     // start time is required
+      updateBlock(b.id, { start: s.value }, true);
+    });
+    e.addEventListener("change", function(){ updateBlock(b.id, { end: e.value }, true); });
+    row.querySelector(".del").addEventListener("click", function(){ deleteBlock(b.id); });
+
+    wrap.appendChild(row);
+  });
+}
+
+function findBlock(id){
+  var list = state.schedule[editDay] || [];
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+
+/** `reorder` re-renders the editor so rows re-sort after a time change. */
+function updateBlock(id, patch, reorder){
+  var b = findBlock(id);
+  if (!b) return;
+  Object.assign(b, patch);
+  syncToday(); recomputeStreaks(); save();
+  if (reorder) renderEdit();
+  if (currentView !== "today") renderToday();
+}
+
+function deleteBlock(id){
+  state.schedule[editDay] = (state.schedule[editDay] || []).filter(function(b){ return b.id !== id; });
+  syncToday(); recomputeStreaks(); save();
+  renderEdit(); renderToday();
+}
+
+$("addblock").addEventListener("click", function(){
+  if (!state.schedule[editDay]) state.schedule[editDay] = [];
+  state.schedule[editDay].push(block("New block", "12:00", "13:00"));
+  syncToday(); save();
+  renderEdit(); renderToday();
+});
+
+$("resetsched").addEventListener("click", function(){
+  if (!confirm("Reset the schedule for every day back to the default? Your history and streak are not affected.")) return;
+  state.schedule = defaultSchedule();
+  syncToday(); recomputeStreaks(); save();
+  renderEdit(); renderToday();
+});
+
+/* --------------------------------- boot ---------------------------------- */
+
+function renderAll(){
+  renderHeader();
+  renderQuote();
+  if (currentView === "today") renderToday();
+  if (currentView === "calendar") renderCalendar();
+  if (currentView === "edit") renderEdit();
+  renderStreak();
+  renderWeek();
+}
+
+catchUp();
+renderAll();
+
+/**
+ * One timer drives everything:
+ *  - the clock, every second
+ *  - the "NOW" highlight, which only changes when a block starts or ends
+ *  - the 4 AM rollover, detected by the logical date key changing underneath us
+ *    (this is why leaving the tab open overnight still works)
+ */
+var lastLogical = logicalKey();
+setInterval(function(){
+  renderHeader();
+
+  var nowKey = logicalKey();
+  if (nowKey !== lastLogical) {
+    lastLogical = nowKey;
+    catchUp();          // close out yesterday, score it, move the streak
+    selectedDay = null;
+    renderQuote();      // new day -> new quote
+    renderAll();
+    return;
+  }
+  refreshNowHighlight();
+}, 1000);
+</script>
+</body>
+</html>
