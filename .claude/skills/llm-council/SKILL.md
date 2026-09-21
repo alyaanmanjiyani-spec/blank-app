@@ -405,7 +405,7 @@ Keep it scannable. Use bullet points. Include the before/after examples where re
 ### step 6: save the transcript (optional)
 
 
-Only save a transcript if the user asks for it or if the question is significant enough to reference later. If saving, write to `council-transcript-[timestamp].md` in the project's `active/` directory.
+Only save a transcript if the user asks for it or if the question is significant enough to reference later. If saving, write to `council-transcripts/council-transcript-[timestamp].md` in the project root, creating that directory if it does not exist.
 
 
 ---
@@ -464,4 +464,4 @@ Only save a transcript if the user asks for it or if the question is significant
 
 - **Don't council trivial questions.** If the user asks something with one right answer, just answer it. The council is for genuine uncertainty where multiple perspectives add value.
 
-- **The visual report matters.** Most users will scan the report, not read the full transcript. Make the HTML output clean and scannable.
+- **The verdict lives in chat.** Most users scan rather than read every word. Keep the verdict scannable with clear headings and bullets. Do not generate HTML or any other files.

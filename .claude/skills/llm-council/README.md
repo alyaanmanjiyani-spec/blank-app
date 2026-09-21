@@ -97,3 +97,19 @@ This skill was built by [Ole Lehmann](https://x.com/itsolelehmann). Go follow hi
 The methodology is adapted from Andrej Karpathy's [LLM Council](https://github.com/karpathy/llm-council).
 
 This repo just makes it easier to share with friends who want to try it.
+
+---
+
+## Local modifications
+
+This copy is patched relative to upstream. Two fixes:
+
+1. **Removed a contradiction.** The closing notes told Claude to "make the HTML
+   output clean and scannable" while step 5 said not to generate HTML or any
+   files. The note now matches step 5: the verdict is presented in chat.
+2. **Fixed the transcript path.** Optional transcripts pointed at an `active/`
+   directory that does not exist here. They now go to `council-transcripts/`
+   in the project root, created on demand.
+
+Everything else is verbatim from
+https://github.com/aiwithremy/claude-skills-llm-council
