@@ -113,3 +113,34 @@ This copy is patched relative to upstream. Two fixes:
 
 Everything else is verbatim from
 https://github.com/aiwithremy/claude-skills-llm-council
+
+## v2: decorrelation rewrite
+
+Upstream runs five personas over one shared framing of one shared document.
+Inside a single model family that produces correlated errors — five advisors
+with identical priors are wrong in the same direction, then confirm each other
+in peer review. Observed live: a council run reached 5/5 unanimity on both the
+strongest and the weakest response, and the dismissed response held the most
+useful idea.
+
+Four changes fight that:
+
+1. **No pre-framing.** Upstream writes one neutral framing and hands it to all
+   five advisors. That is one lens applied before anyone thinks. Removed.
+2. **Split evidence.** The five seats — Financial, Behavioral, Market,
+   Base-Rate, Customer — read different slices of the input rather than the
+   same brief in different moods. The Market and Customer seats are not told
+   who the user is.
+3. **A web-grounded seat.** The Base-Rate Researcher verifies empirical claims
+   instead of recalling them. It is the only seat whose output is not
+   correlated with the model's priors.
+4. **A dissent pass.** A dedicated agent must argue the emerging consensus is
+   wrong, and must make the strongest case for whatever minority view the
+   reviewers dismissed.
+
+The verdict also gains a "What the Facts Changed" section, and is told to treat
+unanimity as a warning light rather than confirmation.
+
+These reduce correlation. They do not remove it — the seats still share one
+training distribution. The complete fix is Karpathy's original: dispatch to
+different models from different labs. That needs API keys and a script.
