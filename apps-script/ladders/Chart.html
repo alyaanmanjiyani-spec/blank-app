@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #1c1c1f;
+      --text: #ededf0;
+      --muted: #9a9aa3;
+      --whisker: #8a8a93;
+      --buy-fill: #1e4d36;
+      --buy-line: #5fd394;
+      --sell-fill: #3b2f6b;
+      --sell-line: #a98bf0;
+      --good: #ffd64f;
+      --bad: #f0544f;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body { display: flex; flex-direction: column; padding: 20px 28px 16px; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+    .sub { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    button {
+      padding: 7px 14px;
+      border: 1px solid #3a3a42;
+      border-radius: 8px;
+      background: #2a2a30;
+      color: var(--text);
+      font: 500 13px Inter, system-ui, sans-serif;
+      cursor: pointer;
+    }
+    button:hover { background: #33333a; }
+    #chart { position: relative; flex: 1; min-height: 0; margin-top: 8px; }
+    svg { display: block; width: 100%; height: 100%; }
+    .game { cursor: default; transition: opacity 0.15s; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 26px;
+      padding-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 8px; }
+    .sw { width: 16px; height: 16px; border: 1.5px solid; border-radius: 4px; }
+    .dot { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; }
+    .dash { width: 22px; border-top: 2px dashed var(--whisker); }
+    .whisk { width: 2px; height: 16px; background: var(--whisker); }
+    #tip {
+      position: absolute;
+      min-width: 220px;
+      padding: 10px 12px;
+      border: 1px solid #3a3a42;
+      border-radius: 10px;
+      background: #2a2a30;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      font-size: 12.5px;
+      line-height: 1.55;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    #tip .title { font-size: 13.5px; font-weight: 600; }
+    #tip .version { margin-bottom: 6px; color: var(--muted); }
+    #tip .row { display: flex; justify-content: space-between; gap: 18px; }
+    #tip .row span:first-child { color: var(--muted); }
+    #tip hr { margin: 6px 0; border: 0; border-top: 1px solid #3a3a42; }
+    .msg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 40px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Price ladders</h1>
+      <div class="sub" id="sub">Loading…</div>
+    </div>
+    <button id="refresh">Refresh</button>
+  </header>
+
+  <div id="chart"><svg id="svg"></svg><div id="tip"></div></div>
+
+  <div class="legend">
+    <span><i class="sw" style="background:var(--sell-fill);border-color:var(--sell-line)"></i>Sell range</span>
+    <span><i class="sw" style="background:var(--buy-fill);border-color:var(--buy-line)"></i>Buy zone</span>
+    <span><i class="whisk"></i>Gap = no profit</span>
+    <span><i class="dash"></i>Ceiling / floor</span>
+    <span><i class="dot" style="background:var(--good)"></i>Listing: BUY / STEAL</span>
+    <span><i class="dot" style="background:var(--bad)"></i>Listing: too high</span>
+  </div>
+
+  <script>
+    // SVG attributes can't read CSS variables, so the chart keeps its own copy.
+    const C = {
+      bg: '#1c1c1f', text: '#ededf0', muted: '#9a9aa3', grid: '#2c2c32', baseline: '#4a4a52',
+      whisker: '#8a8a93', buyFill: '#1e4d36', buyLine: '#5fd394',
+      sellFill: '#3b2f6b', sellLine: '#a98bf0', good: '#ffd64f', bad: '#f0544f',
+    };
+    const CHIP = {
+      BUY: { bg: '#1f4d33', fg: '#7be0a0' },
+      STEAL: { bg: '#52420f', fg: '#ffd64f' },
+      PASS: { bg: '#541f1f', fg: '#ff8a80' },
+    };
+    const REFRESH_MS = 15000;
+    const NS = 'http://www.w3.org/2000/svg';
+
+    const svg = document.getElementById('svg');
+    const tip = document.getElementById('tip');
+    const chartEl = document.getElementById('chart');
+    let games = [];
+
+    const money = (v) => (v == null ? '–' : '$' + v.toFixed(2));
+    const firstNum = (...vals) => vals.find((v) => v != null);
+
+    function el(tag, attrs, parent) {
+      const node = document.createElementNS(NS, tag);
+      for (const k in attrs) node.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(node);
+      return node;
+    }
+
+    function text(str, attrs, parent) {
+      const node = el('text', attrs, parent);
+      node.textContent = str;
+      return node;
+    }
+
+    // Pick a "round" gridline step ($5, $10, $20, $25, $50…) giving about 5 lines.
+    function niceStep(max) {
+      const raw = max / 5;
+      const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+      return [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= raw);
+    }
+
+    // Split a game name into at most two lines so labels don't collide.
+    function wrap(str, maxChars) {
+      const lines = [''];
+      for (const word of str.split(/\s+/)) {
+        const cur = lines[lines.length - 1];
+        if (!cur || (cur + ' ' + word).length <= maxChars) lines[lines.length - 1] = cur ? cur + ' ' + word : word;
+        else if (lines.length < 2) lines.push(word);
+        else lines[1] += ' ' + word;
+      }
+      if (lines[1] && lines[1].length > maxChars) lines[1] = lines[1].slice(0, maxChars - 1) + '…';
+      return lines;
+    }
+
+    function showMsg(message) {
+      svg.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.textContent = message;
+      chartEl.appendChild(div);
+    }
+
+    function render() {
+      chartEl.querySelectorAll('.msg').forEach((n) => n.remove());
+      svg.innerHTML = '';
+      if (!games.length) {
+        showMsg('No games yet. Type a game into row 11 of the Ladders tab, then press Refresh.');
+        return;
+      }
+
+      const W = chartEl.clientWidth;
+      const H = chartEl.clientHeight;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const m = { top: 20, right: 24, bottom: 96, left: 64 };
+      const plotW = W - m.left - m.right;
+      const plotH = H - m.top - m.bottom;
+
+      const prices = games.flatMap((g) => [g.ceiling, g.market, g.listing, g.maxBuy, g.floor]);
+      const highest = Math.max(1, ...prices.filter((v) => v != null));
+      const step = niceStep(highest * 1.08);
+      const yMax = Math.ceil((highest * 1.08) / step) * step;
+      const y = (v) => m.top + plotH - (v / yMax) * plotH;
+
+      for (let v = 0; v <= yMax + 1e-9; v += step) {
+        el('line', { x1: m.left, x2: W - m.right, y1: y(v), y2: y(v), stroke: v === 0 ? C.baseline : C.grid }, svg);
+        text('$' + v, { x: m.left - 14, y: y(v) + 4, 'text-anchor': 'end', fill: C.muted, 'font-size': 12 }, svg);
+      }
+
+      const slot = plotW / games.length;
+      const boxW = Math.min(68, slot * 0.38);
+      const tickW = boxW + 22;
+
+      games.forEach((g, i) => {
+        const cx = m.left + slot * (i + 0.5);
+        const grp = el('g', { class: 'game' }, svg);
+        // Invisible hit area so hovering anywhere in the column shows the tooltip.
+        el('rect', { x: cx - slot / 2, y: 0, width: slot, height: H, fill: 'transparent' }, grp);
+
+        const low = firstNum(g.floor, g.maxBuy, g.market);
+        const high = firstNum(g.ceiling, g.market);
+        if (low != null && high != null) {
+          el('line', { x1: cx, x2: cx, y1: y(low), y2: y(high), stroke: C.whisker, 'stroke-width': 1.5 }, grp);
+        }
+        for (const v of [g.ceiling, g.floor]) {
+          if (v == null) continue;
+          el('line', {
+            x1: cx - tickW / 2, x2: cx + tickW / 2, y1: y(v), y2: y(v),
+            stroke: C.whisker, 'stroke-width': 2, 'stroke-dasharray': '5 4',
+          }, grp);
+        }
+
+        // Sell range: market up to ceiling.
+        if (g.market != null && g.ceiling != null && g.ceiling > g.market) {
+          el('rect', {
+            x: cx - boxW / 2, y: y(g.ceiling), width: boxW, height: y(g.market) - y(g.ceiling),
+            rx: 7, fill: C.sellFill, stroke: C.sellLine, 'stroke-width': 1.5,
+          }, grp);
+        } else if (g.market != null) {
+          el('line', { x1: cx - boxW / 2, x2: cx + boxW / 2, y1: y(g.market), y2: y(g.market), stroke: C.sellLine, 'stroke-width': 2.5 }, grp);
+        }
+
+        // Buy zone: floor up to max buy. No box when the target is too high.
+        if (g.floor != null && g.maxBuy != null && g.maxBuy > g.floor) {
+          const top = g.market != null ? Math.min(g.maxBuy, g.market) : g.maxBuy;
+          el('rect', {
+            x: cx - boxW / 2, y: y(top), width: boxW, height: y(g.floor) - y(top),
+            rx: 7, fill: C.buyFill, stroke: C.buyLine, 'stroke-width': 1.5,
+          }, grp);
+        }
+
+        // Listing dot, gold for a good deal and red when it costs too much.
+        if (g.listing != null) {
+          const color = g.verdict === 'PASS' ? C.bad : C.good;
+          el('circle', { cx, cy: y(g.listing), r: 9, fill: color, stroke: '#fff', 'stroke-width': 2.5 }, grp);
+          text(money(g.listing), {
+            x: cx + boxW / 2 + 10, y: y(g.listing) + 4, fill: color, 'font-size': 12, 'font-weight': 600,
+            stroke: C.bg, 'stroke-width': 4, 'paint-order': 'stroke',
+          }, grp);
+        }
+
+        // Name (up to two lines), then the verdict chip, then any flag.
+        const nameY = m.top + plotH + 24;
+        const lines = wrap(g.name, Math.max(10, Math.floor(slot / 8.5)));
+        lines.forEach((line, k) => {
+          text(line, { x: cx, y: nameY + k * 17, 'text-anchor': 'middle', fill: C.text, 'font-size': 13.5, 'font-weight': 600 }, grp);
+        });
+        const verdict = g.verdict || 'NO LISTING';
+        const chip = CHIP[verdict] || { bg: '#2a2a30', fg: C.muted };
+        const chipW = verdict.length * 7.5 + 22;
+        const chipY = nameY + lines.length * 17 - 4;
+        el('rect', { x: cx - chipW / 2, y: chipY, width: chipW, height: 22, rx: 11, fill: chip.bg }, grp);
+        text(verdict, {
+          x: cx, y: chipY + 15, 'text-anchor': 'middle', fill: chip.fg,
+          'font-size': 11.5, 'font-weight': 700, 'letter-spacing': '0.04em',
+        }, grp);
+        if (g.flag) {
+          text(g.flag, { x: cx, y: chipY + 38, 'text-anchor': 'middle', fill: CHIP.PASS.fg, 'font-size': 11, 'font-weight': 600 }, grp);
+        }
+
+        grp.addEventListener('mouseenter', () => showTip(g, grp, cx, boxW, y(firstNum(high, g.listing, 0)), W));
+        grp.addEventListener('mouseleave', hideTip);
+      });
+    }
+
+    function showTip(g, grp, cx, boxW, anchorY, W) {
+      const profit = g.takeHome != null && g.listing != null ? g.takeHome - g.listing : null;
+      const profitColor = profit == null ? C.muted : profit >= 0 ? CHIP.BUY.fg : CHIP.PASS.fg;
+      const row = (label, value, color) =>
+        `<div class="row"><span>${label}</span><span style="color:${color || C.text}">${value}</span></div>`;
+      tip.innerHTML =
+        `<div class="title"></div><div class="version"></div>` +
+        row('Ceiling', money(g.ceiling)) +
+        row('Market', money(g.market)) +
+        row('Max buy', money(g.maxBuy), CHIP.BUY.fg) +
+        row('Floor', money(g.floor)) +
+        '<hr>' +
+        row('Listing', money(g.listing), g.verdict === 'PASS' ? C.bad : C.good) +
+        row('Profit if you buy it', profit == null ? '–' : (profit < 0 ? '−$' : '$') + Math.abs(profit).toFixed(2), profitColor);
+      // Names come from the sheet, so set them as text rather than HTML.
+      tip.querySelector('.title').textContent = g.name;
+      tip.querySelector('.version').textContent = g.version || ' ';
+
+      const tipW = tip.offsetWidth;
+      // Sit past the listing price label so the tooltip never covers it.
+      const right = cx + boxW / 2 + 76;
+      tip.style.left = (right + tipW < W ? right : cx - boxW / 2 - 18 - tipW) + 'px';
+      tip.style.top = Math.max(0, anchorY) + 'px';
+      tip.style.opacity = 1;
+      svg.querySelectorAll('.game').forEach((n) => (n.style.opacity = 0.45));
+      grp.style.opacity = 1;
+    }
+
+    function hideTip() {
+      tip.style.opacity = 0;
+      svg.querySelectorAll('.game').forEach((n) => (n.style.opacity = 1));
+    }
+
+    function load() {
+      google.script.run
+        .withSuccessHandler((data) => {
+          games = data;
+          const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          document.getElementById('sub').textContent = `Same $ scale for every game · updated ${time}`;
+          render();
+        })
+        .withFailureHandler((err) => showMsg('Could not read the Ladders tab: ' + err.message))
+        .getLadderData();
+    }
+
+    document.getElementById('refresh').addEventListener('click', load);
+    window.addEventListener('resize', render);
+    load();
+    setInterval(load, REFRESH_MS);
+  </script>
+</body>
+</html>
