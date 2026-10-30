@@ -1,4 +1,6 @@
 /**
+ * @OnlyCurrentDoc
+ *
  * Ladders chart for the "Business Tracker" spreadsheet.
  *
  * Adds a "Ladders" menu with "Show chart", which opens a live chart of the
