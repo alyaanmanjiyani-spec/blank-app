@@ -76,6 +76,7 @@
     #tip .row { display: flex; justify-content: space-between; gap: 18px; }
     #tip .row span:first-child { color: var(--muted); }
     #tip hr { margin: 6px 0; border: 0; border-top: 1px solid #3a3a42; }
+    #tip .problem { color: #ffab5e; font-weight: 600; }
     .msg {
       position: absolute;
       inset: 0;
@@ -120,6 +121,7 @@
       BUY: { bg: '#1f4d33', fg: '#7be0a0' },
       STEAL: { bg: '#52420f', fg: '#ffd64f' },
       PASS: { bg: '#541f1f', fg: '#ff8a80' },
+      'CHECK DATA': { bg: '#4d2e12', fg: '#ffab5e' },
     };
     const REFRESH_MS = 15000;
     const NS = 'http://www.w3.org/2000/svg';
@@ -131,6 +133,21 @@
 
     const money = (v) => (v == null ? '–' : '$' + v.toFixed(2));
     const firstNum = (...vals) => vals.find((v) => v != null);
+
+    // A row is broken when the sheet says CHECK DATA, or a formula error (#VALUE!, #REF!…) slips through.
+    const isBroken = (g) => g.verdict === 'CHECK DATA' || g.verdict.startsWith('#');
+
+    // Gold only for a real BUY/STEAL and red only for a real PASS. Anything else gets no color.
+    function dotColor(g) {
+      if (g.verdict === 'BUY' || g.verdict === 'STEAL') return C.good;
+      if (g.verdict === 'PASS') return C.bad;
+      return null;
+    }
+
+    function problem(g) {
+      if (g.verdict.startsWith('#')) return 'Formula error in this row';
+      return g.flag.replace(/^CHECK:\s*/, '');
+    }
 
     function el(tag, attrs, parent) {
       const node = document.createElementNS(NS, tag);
@@ -209,6 +226,7 @@
         // Invisible hit area so hovering anywhere in the column shows the tooltip.
         el('rect', { x: cx - slot / 2, y: 0, width: slot, height: H, fill: 'transparent' }, grp);
 
+        const broken = isBroken(g);
         const low = firstNum(g.floor, g.maxBuy, g.market);
         const high = firstNum(g.ceiling, g.market);
         if (low != null && high != null) {
@@ -222,8 +240,11 @@
           }, grp);
         }
 
-        // Sell range: market up to ceiling.
-        if (g.market != null && g.ceiling != null && g.ceiling > g.market) {
+        // Sell range: market up to ceiling. Broken rows only get the whisker and ticks,
+        // so nothing on them looks like a buy or sell signal.
+        if (broken) {
+          // Draw nothing extra.
+        } else if (g.market != null && g.ceiling != null && g.ceiling > g.market) {
           el('rect', {
             x: cx - boxW / 2, y: y(g.ceiling), width: boxW, height: y(g.market) - y(g.ceiling),
             rx: 7, fill: C.sellFill, stroke: C.sellLine, 'stroke-width': 1.5,
@@ -233,7 +254,7 @@
         }
 
         // Buy zone: floor up to max buy. No box when the target is too high.
-        if (g.floor != null && g.maxBuy != null && g.maxBuy > g.floor) {
+        if (!broken && g.floor != null && g.maxBuy != null && g.maxBuy > g.floor) {
           const top = g.market != null ? Math.min(g.maxBuy, g.market) : g.maxBuy;
           el('rect', {
             x: cx - boxW / 2, y: y(top), width: boxW, height: y(g.floor) - y(top),
@@ -242,8 +263,8 @@
         }
 
         // Listing dot, gold for a good deal and red when it costs too much.
-        if (g.listing != null) {
-          const color = g.verdict === 'PASS' ? C.bad : C.good;
+        const color = dotColor(g);
+        if (g.listing != null && color) {
           el('circle', { cx, cy: y(g.listing), r: 9, fill: color, stroke: '#fff', 'stroke-width': 2.5 }, grp);
           text(money(g.listing), {
             x: cx + boxW / 2 + 10, y: y(g.listing) + 4, fill: color, 'font-size': 12, 'font-weight': 600,
@@ -257,7 +278,7 @@
         lines.forEach((line, k) => {
           text(line, { x: cx, y: nameY + k * 17, 'text-anchor': 'middle', fill: C.text, 'font-size': 13.5, 'font-weight': 600 }, grp);
         });
-        const verdict = g.verdict || 'NO LISTING';
+        const verdict = broken ? 'CHECK DATA' : g.verdict || 'NO LISTING';
         const chip = CHIP[verdict] || { bg: '#2a2a30', fg: C.muted };
         const chipW = verdict.length * 7.5 + 22;
         const chipY = nameY + lines.length * 17 - 4;
@@ -266,8 +287,10 @@
           x: cx, y: chipY + 15, 'text-anchor': 'middle', fill: chip.fg,
           'font-size': 11.5, 'font-weight': 700, 'letter-spacing': '0.04em',
         }, grp);
-        if (g.flag) {
-          text(g.flag, { x: cx, y: chipY + 38, 'text-anchor': 'middle', fill: CHIP.PASS.fg, 'font-size': 11, 'font-weight': 600 }, grp);
+        const note = broken ? problem(g) : g.flag;
+        if (note) {
+          const noteColor = broken ? CHIP['CHECK DATA'].fg : CHIP.PASS.fg;
+          text(note, { x: cx, y: chipY + 38, 'text-anchor': 'middle', fill: noteColor, 'font-size': 11, 'font-weight': 600 }, grp);
         }
 
         grp.addEventListener('mouseenter', () => showTip(g, grp, cx, boxW, y(firstNum(high, g.listing, 0)), W));
@@ -276,7 +299,9 @@
     }
 
     function showTip(g, grp, cx, boxW, anchorY, W) {
-      const profit = g.takeHome != null && g.listing != null ? g.takeHome - g.listing : null;
+      const broken = isBroken(g);
+      // Numbers worked out from bad inputs can't be trusted, so hide them on broken rows.
+      const profit = !broken && g.takeHome != null && g.listing != null ? g.takeHome - g.listing : null;
       const profitColor = profit == null ? C.muted : profit >= 0 ? CHIP.BUY.fg : CHIP.PASS.fg;
       const row = (label, value, color) =>
         `<div class="row"><span>${label}</span><span style="color:${color || C.text}">${value}</span></div>`;
@@ -284,14 +309,16 @@
         `<div class="title"></div><div class="version"></div>` +
         row('Ceiling', money(g.ceiling)) +
         row('Market', money(g.market)) +
-        row('Max buy', money(g.maxBuy), CHIP.BUY.fg) +
+        row('Max buy', broken ? '–' : money(g.maxBuy), CHIP.BUY.fg) +
         row('Floor', money(g.floor)) +
         '<hr>' +
-        row('Listing', money(g.listing), g.verdict === 'PASS' ? C.bad : C.good) +
-        row('Profit if you buy it', profit == null ? '–' : (profit < 0 ? '−$' : '$') + Math.abs(profit).toFixed(2), profitColor);
+        row('Listing', money(g.listing), dotColor(g) || C.muted) +
+        row('Profit if you buy it', profit == null ? '–' : (profit < 0 ? '−$' : '$') + Math.abs(profit).toFixed(2), profitColor) +
+        (broken ? '<hr><div class="problem"></div>' : '');
       // Names come from the sheet, so set them as text rather than HTML.
       tip.querySelector('.title').textContent = g.name;
       tip.querySelector('.version').textContent = g.version || ' ';
+      if (broken) tip.querySelector('.problem').textContent = 'Fix: ' + problem(g);
 
       const tipW = tip.offsetWidth;
       // Sit past the listing price label so the tooltip never covers it.
